@@ -1,0 +1,84 @@
+# Health Monitoring System Configuration
+
+# User Profile
+user:
+  age: 30
+  gender: M
+  baseline_health: normal
+
+# Sensor Configuration
+sensors:
+  sampling_interval_seconds: 5
+  buffer_size: 20
+
+# Normal Ranges
+normal_ranges:
+  heart_rate:
+    min: 60
+    max: 100
+    unit: bpm
+  spo2:
+    min: 95
+    max: 100
+    unit: percent
+  temperature:
+    min: 36.1
+    max: 37.2
+    unit: celsius
+  systolic_bp:
+    min: 90
+    max: 120
+    unit: mmHg
+  diastolic_bp:
+    min: 60
+    max: 80
+    unit: mmHg
+
+# ML Model Configuration
+ml_model:
+  anomaly_detection:
+    algorithm: isolation_forest
+    contamination: 0.1
+    n_estimators: 100
+  
+  risk_classification:
+    algorithm: random_forest
+    n_estimators: 100
+    max_depth: 10
+
+# Alert Thresholds
+alerts:
+  critical:
+    heart_rate_min: 40
+    heart_rate_max: 130
+    spo2_min: 88
+    temperature_min: 35.0
+    temperature_max: 39.0
+  
+  warning:
+    heart_rate_min: 50
+    heart_rate_max: 110
+    spo2_min: 92
+    temperature_min: 35.5
+    temperature_max: 38.0
+
+# Dashboard Configuration
+dashboard:
+  host: 0.0.0.0
+  port: 5000
+  debug: false
+  update_interval_seconds: 5
+  history_limit: 100
+
+# Data Storage
+data:
+  save_directory: ./data
+  export_format: csv
+  auto_save: true
+  save_interval_minutes: 60
+
+# Logging
+logging:
+  level: INFO
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  file: logs/health_monitor.log
