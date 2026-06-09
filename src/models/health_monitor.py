@@ -70,20 +70,38 @@ class HealthMonitoringModel:
             contamination: Expected proportion of anomalies
         """
         print("Training anomaly detection model...")
-        
+
+        from sklearn.metrics import accuracy_score
+        y_true = None
+
         if isinstance(data, pd.DataFrame):
             data = self.add_derived_features(data)
+            print(data.head())
             # Use all numeric columns
             feature_cols = data.select_dtypes(include=[np.number]).columns.tolist()
             # Remove the anomaly label if present
             if 'anomaly_injected' in feature_cols:
+                y_true = data['anomaly_injected'].values.astype(bool)
                 feature_cols.remove('anomaly_injected')
             features = data[feature_cols].values
         else:
             features = data
         
+        # Train / Test split
+        if y_true is not None:
+            X_train, X_test, y_train, y_test = train_test_split(
+                features, y_true, test_size=0.2, random_state=42
+            )
+        else:
+            X_train, X_test = train_test_split(
+                features, test_size=0.2, random_state=42
+            )
+            y_train = None
+            y_test = None
+
         # Fit scaler
-        features_scaled = self.scaler.fit_transform(features)
+        X_train_scaled = self.scaler.fit_transform(X_train)
+        X_test_scaled = self.scaler.transform(X_test)
         
         # Train Isolation Forest
         self.anomaly_detector = IsolationForest(
@@ -91,9 +109,17 @@ class HealthMonitoringModel:
             random_state=42,
             n_estimators=100
         )
-        self.anomaly_detector.fit(features_scaled)
+        self.anomaly_detector.fit(X_train_scaled)
         
-        print(f"Anomaly detector trained on {len(features)} samples")
+        print(f"Anomaly detector trained on {len(X_train)} samples")
+
+        # Evaluate accuracy if true labels (anomaly_injected) are available
+        if y_test is not None:
+            y_pred_test = self.anomaly_detector.predict(X_test_scaled)
+            # IsolationForest returns -1 for anomaly, 1 for normal
+            y_pred_mapped = (y_pred_test == -1)
+            acc = accuracy_score(y_test, y_pred_mapped)
+            print(f"Anomaly detection testing accuracy: {acc:.3f}")
         
         return self
     
@@ -111,7 +137,17 @@ class HealthMonitoringModel:
         if self.anomaly_detector is None:
             raise ValueError("Anomaly detector not trained. Call train_anomaly_detector first.")
         
-        features = self.prepare_features(reading)
+        # Prepare features with derived features if needed
+        if isinstance(reading, dict):
+            df = pd.DataFrame([reading])
+            df = self.add_derived_features(df)
+            feature_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+            if 'anomaly_injected' in feature_cols:
+                feature_cols.remove('anomaly_injected')
+            features = df[feature_cols].values
+        else:
+            features = self.prepare_features(reading)
+            
         features_scaled = self.scaler.transform(features)
         
         # Predict (-1 for anomaly, 1 for normal)
@@ -367,7 +403,14 @@ def train_models_from_data(data_path='data/sensor_data.csv', save_path='models')
 if __name__ == "__main__":
     # Example usage
     import sys
-    sys.path.append('..')
+    import os
+    
+    # Ensure src is in the python path
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    src_dir = os.path.dirname(current_dir)
+    root_dir = os.path.dirname(src_dir)
+    sys.path.append(src_dir)
+    
     from sensors.simulator import HealthSensorSimulator
     
     print("Generating sample data for training...")
@@ -375,11 +418,14 @@ if __name__ == "__main__":
     data = simulator.generate_stream(duration_minutes=1440, interval_seconds=300)
     
     # Save data
-    os.makedirs('../../data', exist_ok=True)
-    data.to_csv('../../data/sensor_data.csv', index=False)
+    data_dir = os.path.join(root_dir, 'data')
+    models_dir = os.path.join(root_dir, 'models')
+    os.makedirs(data_dir, exist_ok=True)
+    data_path = os.path.join(data_dir, 'sensor_data.csv')
+    data.to_csv(data_path, index=False)
     
     # Train models
-    model = train_models_from_data('../../data/sensor_data.csv', '../../models')
+    model = train_models_from_data(data_path, models_dir)
     
     # Test on a sample reading
     print("\n" + "="*60)
@@ -394,19 +440,20 @@ if __name__ == "__main__":
     print(f"Heart Rate: {normal_reading['heart_rate']} bpm")
     print(f"SpO2: {normal_reading['spo2']}%")
     print(f"Temperature: {normal_reading['temperature']}°C")
+    print(f"Is Anomaly: {insights['is_anomaly']} (Score: {insights['anomaly_score']:.3f})")
     print(f"Risk Level: {insights['risk_label']}")
-    print(f"Anomaly Detected: {insights['is_anomaly']}")
-    print(f"Recommendation: {insights['recommendation']}")
-    
-    # Anomalous reading
-    anomaly_reading = simulator.generate_reading(minutes_elapsed=200, inject_anomaly=True)
-    insights = model.get_health_insights(anomaly_reading)
-    
-    print("\nAnomalous Reading Analysis:")
-    print(f"Heart Rate: {anomaly_reading['heart_rate']} bpm")
-    print(f"SpO2: {anomaly_reading['spo2']}%")
-    print(f"Temperature: {anomaly_reading['temperature']}°C")
-    print(f"Risk Level: {insights['risk_label']}")
-    print(f"Anomaly Detected: {insights['is_anomaly']}")
     print(f"Concerns: {', '.join(insights['concerns']) if insights['concerns'] else 'None'}")
     print(f"Recommendation: {insights['recommendation']}")
+
+    # Anomalous reading
+    anomalous_reading = simulator.generate_reading(minutes_elapsed=110, inject_anomaly=True)
+    anomalous_insights = model.get_health_insights(anomalous_reading)
+    
+    print("\nAnomalous Reading Analysis:")
+    print(f"Heart Rate: {anomalous_reading['heart_rate']} bpm")
+    print(f"SpO2: {anomalous_reading['spo2']}%")
+    print(f"Temperature: {anomalous_reading['temperature']}°C")
+    print(f"Is Anomaly: {anomalous_insights['is_anomaly']} (Score: {anomalous_insights['anomaly_score']:.3f})")
+    print(f"Risk Level: {anomalous_insights['risk_label']}")
+    print(f"Concerns: {', '.join(anomalous_insights['concerns']) if anomalous_insights['concerns'] else 'None'}")
+    print(f"Recommendation: {anomalous_insights['recommendation']}")
