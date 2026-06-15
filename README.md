@@ -1,6 +1,24 @@
 # AI-Based Wearable Health Monitoring Prototype
 
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![CI](https://img.shields.io/badge/ci-github--actions-informational)
+![Status](https://img.shields.io/badge/status-prototype-orange)
+
 A comprehensive prototype for real-time health monitoring using simulated wearable sensor data and machine learning algorithms.
+
+## Quick Links
+
+- [Quick Start](./QUICKSTART.md)
+- [Development Guide](./DEVELOPMENT.md)
+- [Contributing](./CONTRIBUTING.md)
+- [Code of Conduct](./CODE_OF_CONDUCT.md)
+- [Security Policy](./SECURITY.md)
+- [Changelog](./CHANGELOG.md)
+
+## Project Vision
+
+Build an accessible, extensible foundation for AI-assisted health signal monitoring and anomaly detection. This project is designed for learning, experimentation, and contributor collaboration.
 
 ## Features
 
@@ -12,72 +30,66 @@ A comprehensive prototype for real-time health monitoring using simulated wearab
 
 ## Project Structure
 
-```
+```text
 .
+├── .github/
+│   ├── ISSUE_TEMPLATE/       # Bug/feature intake templates
+│   ├── workflows/            # CI workflows
+│   └── PULL_REQUEST_TEMPLATE.md
 ├── src/
-│   ├── sensors/           # Sensor data simulation
-│   ├── models/            # ML models for health monitoring
-│   ├── processing/        # Data processing pipeline
-│   └── dashboard/         # Visualization dashboard
-├── data/                  # Sample and generated data
-├── notebooks/             # Jupyter notebooks for analysis
-├── tests/                 # Unit tests
-├── requirements.txt       # Python dependencies
-└── config.yaml           # Configuration file
+│   ├── sensors/              # Sensor data simulation
+│   ├── models/               # ML models for health monitoring
+│   ├── processing/           # Data processing pipeline
+│   └── dashboard/            # Visualization dashboard
+├── tests/                    # Unit tests
+├── data/                     # Sample and generated data
+├── models/                   # Trained model artifacts
+├── notebooks/                # Jupyter notebooks for analysis
+├── CONTRIBUTING.md
+├── DEVELOPMENT.md
+├── SECURITY.md
+├── CHANGELOG.md
+├── QUICKSTART.md
+├── requirements.txt
+└── config.yaml
 ```
-
-## Health Metrics Monitored
-
-1. **Heart Rate**: 60-100 bpm (normal range)
-2. **SpO2 (Blood Oxygen)**: 95-100% (normal range)
-3. **Body Temperature**: 36.1-37.2°C (normal range)
-4. **Activity Level**: Steps, movement intensity
-5. **Sleep Quality**: Duration and patterns
-
-## ML Models
-
-- **Anomaly Detection**: Isolation Forest for detecting unusual patterns
-- **Risk Prediction**: Random Forest classifier for health risk assessment
-- **Time Series Analysis**: LSTM for trend prediction
 
 ## Getting Started
 
 ### Installation
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-### Run Sensor Simulation
+### Common Commands
 
 ```bash
-python src/sensors/simulator.py
+python main.py generate-data --duration 1440 --interval 300
+python main.py train-model
+python main.py dashboard
+python -m pytest -q
 ```
 
-### Train ML Models
+## Contributing
 
-```bash
-python src/models/train_model.py
-```
+We welcome contributions of all sizes.
 
-### Launch Dashboard
-
-```bash
-python src/dashboard/app.py
-```
+1. Review [`CONTRIBUTING.md`](./CONTRIBUTING.md)
+2. Follow local setup in [`DEVELOPMENT.md`](./DEVELOPMENT.md)
+3. Use issue and PR templates for consistent submissions
 
 ## Technologies Used
 
-- Python 3.8+
-- TensorFlow/Keras for deep learning
+- Python 3.10+
 - Scikit-learn for ML algorithms
 - Flask for web dashboard
-- Plotly for interactive visualizations
+- Plotly for visualizations
 - Pandas & NumPy for data processing
 
 ## Safety Notice
 
-⚠️ This is a prototype for educational and demonstration purposes only. It should NOT be used for actual medical diagnosis or treatment decisions. Always consult healthcare professionals for medical advice.
+⚠️ This is a prototype for educational and demonstration purposes only. It should **not** be used for medical diagnosis or treatment decisions. Always consult healthcare professionals for medical advice.
 
 ## License
 
