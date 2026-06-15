@@ -32,6 +32,16 @@ data_history = []
 is_running = False
 monitoring_thread = None
 
+# Physiological limits for validation
+METRIC_LIMITS = {
+    'heart_rate':     {'min': 30,   'max': 250},
+    'spo2':           {'min': 50,   'max': 100},
+    'temperature':    {'min': 34.0, 'max': 43.0},
+    'systolic_bp':    {'min': 60,   'max': 250},
+    'diastolic_bp':   {'min': 30,   'max': 150},
+    'activity_level': {'min': 0,    'max': 100},
+}
+
 
 def initialize_system():
     """Initialize the monitoring system"""
@@ -185,6 +195,32 @@ def get_alerts():
             alert['timestamp'] = alert['timestamp'].isoformat()
     
     return jsonify(alerts)
+
+
+@app.route('/api/metrics', methods=['POST'])
+def submit_metric():
+    """Submit a health metric reading with input validation"""
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    errors = {}
+    for metric, limits in METRIC_LIMITS.items():
+        if metric in data:
+            value = data[metric]
+            if not isinstance(value, (int, float)):
+                errors[metric] = 'Must be a number'
+            elif value < limits['min'] or value > limits['max']:
+                errors[metric] = (
+                    f"Value {value} is out of valid physiological range "
+                    f"({limits['min']} - {limits['max']})"
+                )
+
+    if errors:
+        return jsonify({'error': 'Invalid metric values', 'details': errors}), 400
+
+    return jsonify({'status': 'ok', 'message': 'Metrics accepted', 'data': data}), 200
 
 
 @app.route('/api/daily_summary')
