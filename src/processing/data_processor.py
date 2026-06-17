@@ -448,8 +448,14 @@ class RealTimeMonitor:
 
 if __name__ == "__main__":
     # Example usage
+    import os
     import sys
     sys.path.append('..')
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    src_dir = os.path.dirname(current_dir)
+    root_dir = os.path.dirname(src_dir)
+    sys.path.append(src_dir)
+
     from sensors.simulator import HealthSensorSimulator
     
     print("Testing Data Processing Pipeline...")
@@ -480,7 +486,7 @@ if __name__ == "__main__":
             print(f"  Temperature: {reading['temperature']}°C")
             
             if 'alerts' in analysis:
-                print(f"  ⚠️  Alerts: {len(analysis['alerts'])}")
+                print(f"  [!] Alerts: {len(analysis['alerts'])}")
                 for alert in analysis['alerts']:
                     print(f"    - [{alert['severity'].upper()}] {alert['message']}")
     
@@ -493,5 +499,12 @@ if __name__ == "__main__":
         print(f"  Mean: {values['mean']}, Range: {values['min']}-{values['max']}")
     
     # Export data
-    monitor.processor.export_data('../../data/processed_data.csv', format='csv')
-    print(f"\nData exported successfully")
+    import os
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    src_dir = os.path.dirname(current_dir)
+    root_dir = os.path.dirname(src_dir)
+    data_dir = os.path.join(root_dir, 'data')
+    os.makedirs(data_dir, exist_ok=True)
+    export_path = os.path.join(data_dir, 'processed_data.csv')
+    monitor.processor.export_data(export_path, format='csv')
+    print(f"\nData exported successfully to {export_path}")
