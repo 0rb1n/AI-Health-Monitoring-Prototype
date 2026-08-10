@@ -156,7 +156,68 @@ class HealthSensorSimulator:
             base_activity = random.uniform(0, 10)  # Sleep
         
         return round(base_activity, 1)
-    
+
+    def generate_sleep_quality(self, minutes_elapsed=0, has_anomaly=False):
+        """
+        Generate sleep stage and quality index based on time of night.
+
+        Uses an ultradian rhythm model (~90-minute cycles) to simulate realistic
+        sleep architecture. Sleep quality degrades when health anomalies occur
+        during the sleep window (e.g. tachycardia, apnea-induced hypoxia).
+
+        Args:
+            minutes_elapsed: Time in minutes since monitoring started
+            has_anomaly: Whether a health anomaly is active during this reading
+
+        Returns:
+            dict with:
+                sleep_stage (str): 'Deep', 'Light', 'REM', 'Awake', or 'Awake (daytime)'
+                sleep_quality_index (float or None): 0-100 score; None outside sleep window
+        """
+        hour = (minutes_elapsed // 60) % 24
+
+        # Sleep window: 11 PM (23:00) to 7 AM (07:00)
+        is_sleep_window = hour >= 23 or hour < 7
+
+        if not is_sleep_window:
+            return {
+                'sleep_stage': 'Awake (daytime)',
+                'sleep_quality_index': None
+            }
+
+        # Minutes elapsed since sleep started at 23:00
+        if hour >= 23:
+            mins_since_sleep = (hour - 23) * 60
+        else:
+            mins_since_sleep = (hour + 1) * 60  # 00:00 onward
+
+        # Ultradian cycle: ~90-minute cycles transitioning through stages
+        # Deep Sleep -> Light Sleep -> REM -> brief Awake -> repeat
+        cycle_position = mins_since_sleep % 90
+
+        if cycle_position < 25:
+            stage = 'Deep'
+        elif cycle_position < 55:
+            stage = 'Light'
+        elif cycle_position < 80:
+            stage = 'REM'
+        else:
+            stage = 'Awake'
+
+        # Base quality score with natural variation
+        base_quality = random.uniform(75, 95)
+
+        # Anomalies during sleep (tachycardia, hypoxia, fever) degrade quality
+        if has_anomaly:
+            base_quality -= random.uniform(15, 30)
+
+        sleep_quality_index = round(max(0.0, min(100.0, base_quality)), 1)
+
+        return {
+            'sleep_stage': stage,
+            'sleep_quality_index': sleep_quality_index
+        }
+
     def generate_reading(self, minutes_elapsed=0, inject_anomaly=False):
         """
         Generate a complete sensor reading
@@ -171,7 +232,9 @@ class HealthSensorSimulator:
         has_anomaly = inject_anomaly or (random.random() < 0.05)
         
         systolic, diastolic = self.generate_blood_pressure(activity, has_anomaly)
-        
+
+        sleep_data = self.generate_sleep_quality(minutes_elapsed, has_anomaly)
+
         reading = {
             'timestamp': datetime.now() + timedelta(minutes=minutes_elapsed),
             'heart_rate': round(self.generate_heart_rate(minutes_elapsed, activity, has_anomaly), 1),
@@ -180,6 +243,8 @@ class HealthSensorSimulator:
             'systolic_bp': systolic,
             'diastolic_bp': diastolic,
             'activity_level': self.generate_activity_level(minutes_elapsed),
+            'sleep_stage': sleep_data['sleep_stage'],
+            'sleep_quality_index': sleep_data['sleep_quality_index'],
             'anomaly_injected': has_anomaly
         }
         
@@ -250,7 +315,11 @@ def simulate_realtime_monitoring(duration_seconds=60):
         print(f"Temperature: {reading['temperature']}°C")
         print(f"Blood Pressure: {reading['systolic_bp']}/{reading['diastolic_bp']} mmHg")
         print(f"Activity: {reading['activity_level']}%")
-        
+
+        if reading['sleep_stage'] != 'Awake (daytime)':
+            print(f"Sleep Stage: {reading['sleep_stage']}")
+            print(f"Sleep Quality: {reading['sleep_quality_index']}%")
+
         if reading['anomaly_injected']:
             print("⚠️  ANOMALY DETECTED!")
         
